@@ -24,81 +24,22 @@ import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
-    private val executor = Executors.newSingleThreadExecutor()
-    private val handler = Handler(Looper.getMainLooper())
-    private lateinit var txtRecipeOutput: TextView
-    private lateinit var inputEditText: EditText
-    lateinit var messageTextView: TextView
-    lateinit var progressBar: ProgressBar
     private lateinit var recyclerView: RecyclerView
-    private lateinit var categoryAdapter: CategoryAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
+        recyclerView = findViewById(R.id.categoryRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         fetchMealCategories()
-    }
-
-    private fun fetchRecipe(search: String) {
-        val url = "https://www.themealdb.com/api/json/v1/1/search.php?s=$search"
-        txtRecipeOutput.text = "Searching for \"$search\"..."
-
-        executor.execute {
-            url.httpGet().responseString { _, _, result ->
-                handler.post {
-                    when (result) {
-                        is Result.Success -> {
-                            try {
-                                val mealResponse = Gson().fromJson(result.get(), MealRecipe::class.java)
-                                val meals = mealResponse.meals
-                                if (!meals.isNullOrEmpty()) {
-                                    val meal = meals[0]
-                                    val formattedOutput = """
-                                    Recipe: ${meal.strMeal}
-                                    
-                                    Instructions:
-                                    ${meal.strInstructions}
-                                    
-                                    Ingredients:
-                                    1. ${meal.strIngredient1} - ${meal.strMeasure1}
-                                    2. ${meal.strIngredient2} - ${meal.strMeasure2}
-                                    3. ${meal.strIngredient3} - ${meal.strMeasure3}
-                                    4. ${meal.strIngredient4} - ${meal.strMeasure4}
-                                    5. ${meal.strIngredient5} - ${meal.strMeasure5}
-                                    6. ${meal.strIngredient6} - ${meal.strMeasure6}
-                                    7. ${meal.strIngredient7} - ${meal.strMeasure7}
-                                    8. ${meal.strIngredient8} - ${meal.strMeasure8}
-                                    9. ${meal.strIngredient9} - ${meal.strMeasure9}
-                                    10. ${meal.strIngredient10} - ${meal.strMeasure10}
-                                """.trimIndent()
-                                    txtRecipeOutput.text = formattedOutput
-                                } else {
-                                    txtRecipeOutput.text = "No meals found for \"$search\"."
-                                }
-                            } catch (e: JsonSyntaxException) {
-                                Log.e("searchMealsByName", "JSON parsing error: ${e.message}")
-                                txtRecipeOutput.text = "Error: Could not parse response."
-                            }
-                        }
-
-                        is Result.Failure -> {
-                            val ex = result.getException()
-                            Log.e("searchMealsByName", "API error: ${ex.message}")
-                            txtRecipeOutput.text = "Error: Could not fetch meals."
-                        }
-                    }
-                }
-            }
-        }
     }
 
     private fun fetchMealCategories() {
@@ -108,18 +49,32 @@ class MainActivity : AppCompatActivity() {
             when (result) {
                 is Result.Success -> {
                     val json = result.get()
-                    val categoryResponse = Gson().fromJson(json, MealRecipeCategories::class.java)
-                    val categories = categoryResponse.categories
+                    try {
+                        val categoryResponse = Gson().fromJson(json, MealRecipeCategories::class.java)
+                        val categories = categoryResponse.categories
 
-                    val adapter = CategoryAdapter(categories) { category ->
-                        val intent = Intent(this, MealsActivity::class.java)
-                        intent.putExtra("category_name", category.strCategory)
-                        startActivity(intent)
+                        Log.d("API_SUCCESS", "Parsed ${categories.size} categories")
+
+                        runOnUiThread {
+                            val adapter = CategoryAdapter(categories) { category ->
+                                val intent = Intent(this, MealsActivity::class.java)
+                                intent.putExtra("category_name", category.strCategory)
+                                startActivity(intent)
+                            }
+                            recyclerView.adapter = adapter
+                        }
+
+                    } catch (e: Exception) {
+                        Log.e("JSON_ERROR", "Failed to parse categories: ${e.message}")
+                        runOnUiThread {
+                            Toast.makeText(this, "Parsing error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    recyclerView.adapter = adapter
                 }
 
                 is Result.Failure -> {
+                    val error = result.getException()
+                    Log.e("API_ERROR", "Failed to fetch categories: ${error.message}")
                     runOnUiThread {
                         Toast.makeText(this, "Failed to load categories", Toast.LENGTH_SHORT).show()
                     }

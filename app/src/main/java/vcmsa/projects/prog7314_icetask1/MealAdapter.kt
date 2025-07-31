@@ -8,7 +8,10 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 
-class MealAdapter(private val meals: List<Meal>) : RecyclerView.Adapter<MealAdapter.MealViewHolder>() {
+class MealAdapter(
+    private val meals: List<Meal>,
+    private val onItemClick: (Meal) -> Unit
+) : RecyclerView.Adapter<MealAdapter.MealViewHolder>() {
 
     inner class MealViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val imageView: ImageView = itemView.findViewById(R.id.mealImageView)
@@ -24,6 +27,10 @@ class MealAdapter(private val meals: List<Meal>) : RecyclerView.Adapter<MealAdap
         val meal = meals[position]
         holder.textView.text = meal.strMeal
         Glide.with(holder.itemView.context).load(meal.strMealThumb).into(holder.imageView)
+
+        holder.itemView.setOnClickListener {
+            onItemClick(meal)
+        }
     }
 
     override fun getItemCount() = meals.size

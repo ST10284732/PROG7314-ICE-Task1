@@ -10,21 +10,12 @@ import com.bumptech.glide.Glide
 
 class CategoryAdapter(
     private val categories: List<MealCategory>,
-    private val onItemClick: (MealCategory) -> Unit
+    private val onClick: (MealCategory) -> Unit
 ) : RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder>() {
 
-    inner class CategoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imageView: ImageView = itemView.findViewById(R.id.imgCategory)
-        val textView: TextView = itemView.findViewById(R.id.txtCategoryName)
-
-        init {
-            itemView.setOnClickListener {
-                val position = adapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    onItemClick(categories[position])
-                }
-            }
-        }
+    class CategoryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val categoryName: TextView = itemView.findViewById(R.id.txtCategoryName)
+        val categoryImage: ImageView = itemView.findViewById(R.id.imgCategory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryViewHolder {
@@ -34,9 +25,13 @@ class CategoryAdapter(
 
     override fun onBindViewHolder(holder: CategoryViewHolder, position: Int) {
         val category = categories[position]
-        holder.textView.text = category.strCategory
-        Glide.with(holder.itemView.context).load(category.strCategoryThumb).into(holder.imageView)
+        holder.categoryName.text = category.strCategory
+        Glide.with(holder.itemView.context)
+            .load(category.strCategoryThumb)
+            .into(holder.categoryImage)
+
+        holder.itemView.setOnClickListener { onClick(category) }
     }
 
-    override fun getItemCount() = categories.size
+    override fun getItemCount(): Int = categories.size
 }

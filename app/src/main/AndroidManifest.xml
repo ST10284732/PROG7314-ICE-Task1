@@ -22,6 +22,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".MealsActivity" />
+        <activity android:name=".RecipeActivity" />
     </application>
 
 </manifest>
